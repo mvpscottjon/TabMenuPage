@@ -11,11 +11,18 @@ let package = Package(
             name: "TabMenuPage",
             targets: ["TabMenuPage"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/SnapKit/SnapKit.git", .upToNextMajor(from: "5.0.1"))
+    ],
+    
+    // Target
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "TabMenuPage"),
+            name: "TabMenuPage",
+            dependencies: [.product(name: "SnapKit", package: "SnapKit")]
+        ),
         .testTarget(
             name: "TabMenuPageTests",
             dependencies: ["TabMenuPage"]),
