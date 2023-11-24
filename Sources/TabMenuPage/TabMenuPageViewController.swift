@@ -8,12 +8,13 @@
 import UIKit
 import SnapKit
 
-protocol TabMenuPageViewControllerDataSource: AnyObject {
+public protocol TabMenuPageViewControllerDataSource: AnyObject {
     func viewControllers() -> [UIViewController]
     func titles() -> [String]
+    func defaultSelectedViewController() -> UIViewController?
 }
 
-final class TabMenuPageViewController: UIViewController {
+public final class TabMenuPageViewController: UIViewController {
     
     private enum Constants {
         static let cellIdentifier = "tabMenu"
@@ -21,9 +22,10 @@ final class TabMenuPageViewController: UIViewController {
     
     // MARK: - Property
     
-    weak var dataSource: TabMenuPageViewControllerDataSource? {
+    public weak var dataSource: TabMenuPageViewControllerDataSource? {
         didSet {
             tabMenuCollectionView.reloadData()
+            selectDefaultViewController(vc: dataSource?.defaultSelectedViewController())
         }
     }
     
@@ -44,22 +46,20 @@ final class TabMenuPageViewController: UIViewController {
     private lazy var tabMenuCollectionView = makeCollectionView()
     private lazy var pageViewController = makePageViewController()
     
-    override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        
-        tabMenuCollectionView.backgroundColor = .orange
     }
 }
 
 // MARK: - UICollectionViewDataSource
 
 extension TabMenuPageViewController: UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         contentViewControllers.count
     }
     
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Constants.cellIdentifier, for: indexPath)
         
         if let cell = cell as? TabMenuCell, let titles = dataSource?.titles() {
@@ -72,7 +72,7 @@ extension TabMenuPageViewController: UICollectionViewDataSource {
 
 // MARK: - Expose
 
-extension TabMenuPageViewController {
+public extension TabMenuPageViewController {
     func selectPage(at page: Int) {
         currentPage = page
     }
@@ -81,7 +81,7 @@ extension TabMenuPageViewController {
 // MARK: - UICollectionViewDelegate
 
 extension TabMenuPageViewController: UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         currentPage = indexPath.item
     }
 }
@@ -89,10 +89,11 @@ extension TabMenuPageViewController: UICollectionViewDelegate {
 // MARK: - UIScrollViewDelegate
 
 extension TabMenuPageViewController {
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        
     }
     
-    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+    public func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
     }
 }
 
@@ -100,7 +101,7 @@ extension TabMenuPageViewController {
 
 extension TabMenuPageViewController: UIPageViewControllerDataSource {
     
-    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+    public func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         let currentIndex = contentViewControllers.firstIndex(of: viewController) ?? 0
 
           if currentIndex == 0 {
@@ -112,7 +113,7 @@ extension TabMenuPageViewController: UIPageViewControllerDataSource {
           }
     }
     
-    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+    public func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         let currentIndex = contentViewControllers.firstIndex(of: viewController) ?? 0
 
         if currentIndex == contentViewControllers.count - 1 {
@@ -130,7 +131,7 @@ extension TabMenuPageViewController: UIPageViewControllerDataSource {
 // MARK: - UIPageViewControllerDelegate
 
 extension TabMenuPageViewController: UIPageViewControllerDelegate {
-    func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+    public func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
         // current page
         guard let currentPageViewController = pageViewController.viewControllers?.first, let currentPageIndex = contentViewControllers.firstIndex(of: currentPageViewController) else { return }
         currentPage = currentPageIndex
@@ -162,7 +163,9 @@ private extension TabMenuPageViewController {
         pageViewController.delegate = self
         pageViewController.dataSource = self
         // Must only give one vc which you want to selected. If more than one, will crash.
-        pageViewController.setViewControllers([contentViewControllers[0]], direction: .forward, animated: true)
+        if !contentViewControllers.isEmpty {
+            pageViewController.setViewControllers([contentViewControllers[0]], direction: .forward, animated: true)
+        }
     }
 }
 
@@ -208,5 +211,10 @@ private extension TabMenuPageViewController {
     
     func pageViewSelected(at page: Int) {
         pageViewController.setViewControllers([contentViewControllers[page]], direction: .forward, animated: true)
+    }
+    
+    func selectDefaultViewController(vc: UIViewController?) {
+        guard let vc = vc, let index = contentViewControllers.firstIndex(of: vc) else { return }
+        handlePageSelected(at: index)
     }
 }
